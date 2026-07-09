@@ -47,6 +47,23 @@ def test_get_entries_excludes_archived_by_default(store):
     assert len(store.get_entries(include_archived=True)) == 1
 
 
+def test_search_entries_matches_raw_text(store):
+    store.add_entry(date="2026-07-01", raw_text="205kg leg press day", structured={}, tags=[])
+    store.add_entry(date="2026-07-02", raw_text="chest and shoulders", structured={}, tags=[])
+
+    results = store.search_entries("leg press")
+    assert len(results) == 1
+    assert results[0].raw_text == "205kg leg press day"
+
+
+def test_search_entries_can_exclude_archived(store):
+    entry_id = store.add_entry(date="2026-07-01", raw_text="leg press day", structured={}, tags=[])
+    store.archive_entries([entry_id])
+
+    assert len(store.search_entries("leg press")) == 1  # included by default
+    assert store.search_entries("leg press", include_archived=False) == []
+
+
 def test_multi_label_tags_not_forced_exclusive(store):
     store.add_entry(
         date="2026-07-01",

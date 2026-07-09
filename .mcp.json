@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "anamnesis": {
+      "command": ".venv/bin/python",
+      "args": ["-m", "adapters.claude_code.mcp_server"],
+      "env": {
+        "ANAMNESIS_DB_PATH": "anamnesis.db"
+      }
+    }
+  }
+}

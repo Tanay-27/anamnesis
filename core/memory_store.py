@@ -93,6 +93,40 @@ class MemoryStore:
                 [(eid,) for eid in entry_ids],
             )
 
+    def search_entries(self, query: str, include_archived: bool = True) -> list[Entry]:
+        """Plain keyword search over raw_text. Good enough at this data
+        volume (personal, single-user); an FTS5 or embedding index can
+        replace the LIKE clause later without changing the call signature.
+        """
+        sql = "SELECT * FROM daily_entries WHERE raw_text LIKE ?"
+        params: list[Any] = [f"%{query}%"]
+        if not include_archived:
+            sql += " AND archived = 0"
+        sql += " ORDER BY date DESC"
+
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+            entries = []
+            for row in rows:
+                tags = [
+                    r["tag"]
+                    for r in conn.execute(
+                        "SELECT tag FROM entry_tags WHERE entry_id = ?", (row["id"],)
+                    ).fetchall()
+                ]
+                entries.append(
+                    Entry(
+                        id=row["id"],
+                        date=row["date"],
+                        raw_text=row["raw_text"],
+                        structured=json.loads(row["structured_json"]),
+                        tags=tags,
+                        archived=bool(row["archived"]),
+                        created_at=row["created_at"],
+                    )
+                )
+            return entries
+
     # -- daily_metrics ----------------------------------------------------
 
     def add_metric(self, date: str, metric_name: str, value: float) -> None:
