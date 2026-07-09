@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anamnesis</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Anamnesis</h1>
+    <nav>
+      <a href="/index.html" class="active">Log</a>
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/review.html">Rollups</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Log an update</h2>
+      <form id="entry-form">
+        <label>
+          Date
+          <input type="date" id="entry-date" required>
+        </label>
+        <label>
+          What happened?
+          <textarea id="entry-text" rows="3"
+                    placeholder="e.g. chest and shoulders day, went hard" required></textarea>
+        </label>
+        <button type="submit">Log entry</button>
+      </form>
+      <p id="entry-status" class="muted"></p>
+    </section>
+
+    <section class="card">
+      <h2>Recent entries</h2>
+      <ul id="entry-list"></ul>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/entries.js"></script>
+</body>
+</html>
