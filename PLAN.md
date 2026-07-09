@@ -55,28 +55,48 @@ Each epoch has a test gate that must be green before moving to the next.
 
 0. **Scaffold** — repo structure, schema.sql, migrate.py, pytest config.
    Gate: migration produces all six tables with expected columns. ✅
-1. **MemoryStore** — CRUD for all tables. Pure unit tests, zero LLM.
+1. **MemoryStore** — CRUD for all tables. Pure unit tests, zero LLM. ✅
 2. **classify_and_compress stub** — rule-based, proves the plumbing
-   before any LLM involvement.
+   before any LLM involvement. ✅
 3. **Claude Code MCP adapter** — `log_update`, `get_eager_index`,
-   `search_memory` tools. Swap stub for real prompt-driven classification.
-   Manual test: live Claude Code session, inspect DB for sane output.
-4. **Rollup logic** — deterministic numeric aggregation + LLM-driven
-   qualitative diff (promoted / dropped / carried_forward).
-5. **Human review + archiving** — CLI approve/reject. Approve archives
-   source entries + writes a memory_versions snapshot. Reject leaves
-   data untouched.
+   `search_memory` tools. Classification happens on the calling
+   model's side via the tool description. ✅ code-complete; **still
+   needs a manual live Claude Code session to verify end-to-end** —
+   not something an automated pass can confirm.
+4. **Rollup logic** — deterministic numeric aggregation + injectable
+   qualitative reasoner (promoted / dropped / carried_forward). ✅
+5. **Human review + archiving** — CLI + approve/reject core logic.
+   Approve archives source entries (only within the rollup's own date
+   window) + writes a memory_versions snapshot. Reject leaves data
+   untouched. ✅
 6. **FastAPI REST layer** — thin routes over MemoryStore, no logic in
-   the routes themselves.
-7. **Frontend: entry form + list.**
+   the routes themselves. ✅
+7. **Frontend: entry form + list.** ✅ code-complete; **visual/
+   interactive check still needs a manual browser click-through.**
 8. **Frontend: ECharts dashboard** — weight / steps / goal % with
-   dataZoom for scroll/zoom.
+   dataZoom for scroll/zoom. ✅ code-complete; **actual scroll/zoom
+   feel needs a manual browser check.**
 9. **Frontend: rollup review UI** — same backend logic as Epoch 5,
-   just a second frontend on it.
-10. **Hardening** — error handling, provider-selection config seam,
-    full week-in-the-life walkthrough.
+   just a second frontend on it. ✅
+10. **Hardening** — RollupReasoningError guards against a failed or
+    malformed reasoner ever persisting a draft; provider_config.py
+    seam (only `claude_code` implemented); full week-in-the-life
+    integration test (goal → 7 days of entries incl. a disrupted day
+    → rollup → approve → verify metrics/goal/rollup state). ✅
 11. *(later, optional)* **Tauri wrap** — native-feeling packaging of
-    the same frontend, no rewrite.
+    the same frontend, no rewrite. Not started.
+
+### What's automated vs. still manual
+
+Everything in `core/` and the API layer is covered by automated tests
+(58 passing as of Epoch 10). Three things a coding pass genuinely
+cannot verify and still need a human pass:
+- A live Claude Code session actually calling the MCP tools end-to-end
+  (Epoch 3's real test gate).
+- The frontend actually feeling right in a browser — form submission,
+  list rendering, chart scroll/zoom (Epochs 7-9).
+- The classification/rollup *quality* once a real LLM is doing it
+  instead of the rule-based stub / stub reasoner used in tests.
 
 ## Provider abstraction note
 

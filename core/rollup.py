@@ -18,6 +18,17 @@ from typing import Any, Protocol
 
 from core.memory_store import MemoryStore
 
+_LIST_FIELDS = ("promoted", "dropped", "carried_forward")
+
+
+class RollupReasoningError(RuntimeError):
+    """Raised when the qualitative reasoner fails or returns malformed
+    output. No rollup draft is ever written when this is raised — a
+    failed or garbled reasoning pass should surface loudly to whatever
+    called it (CLI, MCP tool, scheduler), not silently persist a
+    corrupt or partial draft that looks legitimate in the review queue.
+    """
+
 
 class QualitativeReasoner(Protocol):
     def __call__(self, entries_summary: str, numeric_summary: dict[str, Any]) -> dict[str, Any]:
@@ -64,7 +75,24 @@ def audit_and_retain_rollup(
     approval, in core/review.py."""
     entries = store.get_entries(start_date=start_date, end_date=end_date)
     numeric = aggregate_numeric_metrics(store, metric_names, start_date, end_date)
-    qualitative = reasoner(_format_entries_for_reasoner(entries), numeric)
+
+    try:
+        qualitative = reasoner(_format_entries_for_reasoner(entries), numeric)
+    except Exception as exc:
+        raise RollupReasoningError(
+            f"reasoner failed for window {start_date}..{end_date}: {exc}"
+        ) from exc
+
+    if not isinstance(qualitative, dict):
+        raise RollupReasoningError(
+            f"reasoner returned {type(qualitative).__name__}, expected dict"
+        )
+    for field in _LIST_FIELDS:
+        if field in qualitative and not isinstance(qualitative[field], list):
+            raise RollupReasoningError(
+                f"reasoner field {field!r} must be a list, "
+                f"got {type(qualitative[field]).__name__}"
+            )
 
     summary = {
         "numeric_metrics": numeric,
